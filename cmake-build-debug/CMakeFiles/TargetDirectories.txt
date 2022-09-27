@@ -1,0 +1,3 @@
+C:/Users/nekita/Desktop/UNIGINE/task_logic/public/cmake-build-debug/CMakeFiles/unigine_task.dir
+C:/Users/nekita/Desktop/UNIGINE/task_logic/public/cmake-build-debug/CMakeFiles/edit_cache.dir
+C:/Users/nekita/Desktop/UNIGINE/task_logic/public/cmake-build-debug/CMakeFiles/rebuild_cache.dir

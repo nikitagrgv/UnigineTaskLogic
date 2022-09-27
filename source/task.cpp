@@ -43,16 +43,16 @@ struct Shadow
     static Shadow fromProjectedPoints(float p1, float p2)
     {
         return {
-            std::min(p1, p2),
-            std::max(p1, p2)
+                std::min(p1, p2),
+                std::max(p1, p2)
         };
     }
 
     static Shadow fromProjectedPoints(float p1, float p2, float p3)
     {
         return {
-			std::min(std::min(p1, p2), p3),
-			std::max(std::max(p1, p2), p3)
+                std::min(std::min(p1, p2), p3),
+                std::max(std::max(p1, p2), p3)
         };
     }
 
@@ -64,22 +64,23 @@ struct Shadow
 };
 
 
-bool isShadowsIntersectsForVectorInTriangle(const Point& vector_begin, const Point& vector_end, const Point& third_point, const Triangle& tri2)
+bool isShadowsIntersectsForVectorInTriangle(const Point& vector_begin, const Point& vector_end,
+                                            const Point& third_point_of_triangle, const Triangle& tri2)
 {
-    Vector2D vector_AB(vector_begin, vector_end);
-    Vector2D normal_AB = vector_AB.getNormal();
+    Vector2D vector(vector_begin, vector_end);
+    Vector2D normal = vector.getNormal();
 
-    float projection_AC = normal_AB.projectVector({ vector_begin, third_point });
+    float projection_of_third_point = normal.projectVector({vector_begin, third_point_of_triangle});
 
-    Shadow shadow_tri1 = Shadow::fromProjectedPoints(0, projection_AC);
+    Shadow shadow_tri1 = Shadow::fromProjectedPoints(0, projection_of_third_point);
 
-    float projection_tri2_A = normal_AB.projectVector({ vector_begin, tri2.a });
-    float projection_tri2_B = normal_AB.projectVector({ vector_begin, tri2.b });
-    float projection_tri2_C = normal_AB.projectVector({ vector_begin, tri2.c });
+    float projection_tri2_A = normal.projectVector({vector_begin, tri2.a});
+    float projection_tri2_B = normal.projectVector({vector_begin, tri2.b});
+    float projection_tri2_C = normal.projectVector({vector_begin, tri2.c});
 
     Shadow shadow_tri2 = Shadow::fromProjectedPoints(projection_tri2_A,
-        projection_tri2_B,
-        projection_tri2_C);
+                                                     projection_tri2_B,
+                                                     projection_tri2_C);
 
     return Shadow::isShadowsIntersects(shadow_tri1, shadow_tri2);
 }
@@ -90,7 +91,7 @@ bool isTrianglesIntersectsRelativelyToFirstTriangle(const Triangle& tri1, const 
     {
         return false;
     }
-    
+
     if (!isShadowsIntersectsForVectorInTriangle(tri1.b, tri1.c, tri1.a, tri2))
     {
         return false;
@@ -100,7 +101,7 @@ bool isTrianglesIntersectsRelativelyToFirstTriangle(const Triangle& tri1, const 
     {
         return false;
     }
-    
+
     return true;
 }
 
@@ -122,10 +123,9 @@ bool isTrianglesIntersects(const Triangle& tri1, const Triangle& tri2)
 }
 
 
-
 void Task::checkIntersections(const std::vector<Triangle>& in_triangles, std::vector<int>& out_count)
 {
-	const auto triangles_count = in_triangles.size();
+    const auto triangles_count = in_triangles.size();
 
     out_count.resize(triangles_count, 0);
 
@@ -137,8 +137,6 @@ void Task::checkIntersections(const std::vector<Triangle>& in_triangles, std::ve
             const auto& tri2 = in_triangles[j];
 
             bool is_intersects = isTrianglesIntersects(tri1, tri2);
-
-            // std::cout << i << " " << j << " = " << is_intersects << std::endl;
 
             out_count[i] += is_intersects;
             out_count[j] += is_intersects;

@@ -18,7 +18,7 @@ float get_random()
     return dis(e);
 }
 
-int main()
+int main1()
 {
     // input
     int count = 1000;
@@ -42,14 +42,14 @@ int main()
 
 
 
-int main2()
+int main()
 {
 	std::vector<Triangle> triangles;
 	std::vector<int> intersections;
 
 	// input
 	int count = 0;
-	std::ifstream in("input.txt");
+	std::ifstream in("input2.txt");
 	if (in.is_open())
 	{
 		in >> count;

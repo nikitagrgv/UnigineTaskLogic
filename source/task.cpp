@@ -38,11 +38,11 @@ class Shadow
     float _begin;
     float _end;
 
-public:
     Shadow(float begin, float end) : _begin(begin), _end(end)
     {
     }
 
+public:
     static Shadow fromProjectedPoints(float p1, float p2)
     {
         return {
@@ -68,12 +68,12 @@ public:
 // find shadows of tri1 and tri2, projected on the vector in tri1, and check if they intersect
 // shadows are calculated relatively to the point side_begin
 bool isIntersectRelativelyToSide(const Point& side_begin, const Point& side_end,
-                                 const Point& third_point_of_triangle, const Triangle& tri2)
+                                 const Point& last_point_of_triangle, const Triangle& tri2)
 {
     Vector2D vector(side_begin, side_end);
     Vector2D normal = vector.getNormal();
 
-    float projection_of_third_point = normal.getPseudoProjection({side_begin, third_point_of_triangle});
+    float projection_of_third_point = normal.getPseudoProjection({side_begin, last_point_of_triangle});
 
     // we don't need to find projection of side_begin and side_end because they are both zero
 

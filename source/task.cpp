@@ -1,8 +1,9 @@
 #include "task.h"
 
-#include <x86intrin.h>
 #include <mutex>
 #include <thread>
+#include <atomic>
+#include <algorithm>
 
 struct Vector2D
 {
@@ -17,7 +18,7 @@ struct Vector2D
 
     Vector2D getNormal() const
     {
-        return {-y, x};
+        return { -y, x };
     }
 
     // projection of vector a onto vector b = (a*b)/|b|
@@ -32,7 +33,7 @@ struct Vector2D
     static float dotProduct(const Vector2D& vec1, const Vector2D& vec2)
     {
         return vec1.x * vec2.x +
-               vec1.y * vec2.y;
+            vec1.y * vec2.y;
     }
 };
 
@@ -58,8 +59,8 @@ public:
     static Shadow fromProjectedPoints(float p1, float p2, float p3)
     {
         return {
-                std::min(std::min(p1, p2), p3),
-                std::max(std::max(p1, p2), p3)
+                std::min({p1, p2, p3}),
+                std::max({p1, p2, p3})
         };
     }
 
@@ -72,24 +73,24 @@ public:
 // find shadows of tri1 and tri2, projected on the vector in tri1, and check if they intersect
 // shadows are calculated relatively to the point side_begin
 bool isIntersectRelativelyToSide(const Point& side_begin, const Point& side_end,
-                                 const Point& last_point_of_triangle, const Triangle& tri2)
+    const Point& last_point_of_triangle, const Triangle& tri2)
 {
     Vector2D vector(side_begin, side_end);
     Vector2D normal = vector.getNormal();
 
-    float projection_of_third_point = normal.getPseudoProjection({side_begin, last_point_of_triangle});
+    float projection_of_third_point = normal.getPseudoProjection({ side_begin, last_point_of_triangle });
 
     // we don't need to find projection of side_begin and side_end because they are both zero
 
     auto shadow_tri1 = Shadow::fromProjectedPoints(0, projection_of_third_point);
 
-    auto projection_tri2_a = normal.getPseudoProjection({side_begin, tri2.a});
-    auto projection_tri2_b = normal.getPseudoProjection({side_begin, tri2.b});
-    auto projection_tri2_c = normal.getPseudoProjection({side_begin, tri2.c});
+    auto projection_tri2_a = normal.getPseudoProjection({ side_begin, tri2.a });
+    auto projection_tri2_b = normal.getPseudoProjection({ side_begin, tri2.b });
+    auto projection_tri2_c = normal.getPseudoProjection({ side_begin, tri2.c });
 
     auto shadow_tri2 = Shadow::fromProjectedPoints(projection_tri2_a,
-                                                   projection_tri2_b,
-                                                   projection_tri2_c);
+        projection_tri2_b,
+        projection_tri2_c);
 
     return Shadow::isIntersect(shadow_tri1, shadow_tri2);
 }
@@ -138,15 +139,14 @@ class IntersectionsChecker
 private:
     const std::vector<Triangle>& in_triangles;
     std::vector<int>& out_count;
-    std::mutex out_count_mutex;
     const size_t triangles_count;
+    std::vector<std::atomic<int>> out_count_atomic;
+    // std::mutex out_count_mutex;
 
     void markIntersected(int i, int j)
     {
-        std::lock_guard<std::mutex> guard(out_count_mutex);
-
-        out_count[i] += 1;
-        out_count[j] += 1;
+        out_count_atomic[i]++;
+        out_count_atomic[j]++;
     }
 
     void checkPortionOfTriangles(int num_of_portions, int current_portion)
@@ -154,8 +154,8 @@ private:
         auto portion_size = triangles_count / num_of_portions;
         auto portion_begin = portion_size * current_portion;
         auto portion_end = num_of_portions == current_portion + 1 ?
-                           triangles_count - 1 :
-                           portion_size * (current_portion + 1);
+            triangles_count - 1 :
+            portion_size * (current_portion + 1);
 
         for (int i = portion_begin; i < portion_end; ++i)
         {
@@ -174,11 +174,11 @@ private:
 
 public:
     IntersectionsChecker(const std::vector<Triangle>& in_triangles, std::vector<int>& out_count) :
-            in_triangles(in_triangles),
-            out_count(out_count),
-            triangles_count(in_triangles.size())
+        in_triangles(in_triangles),
+        out_count(out_count),
+        triangles_count(in_triangles.size()),
+        out_count_atomic(triangles_count)
     {
-        out_count.resize(triangles_count);
     }
 
     void fillIntersectionsVector()
@@ -189,13 +189,21 @@ public:
         for (int i = 0; i < num_of_threads; ++i)
         {
             threads.push_back(
-                    std::thread(&IntersectionsChecker::checkPortionOfTriangles, this, num_of_threads, i)
+                std::thread(&IntersectionsChecker::checkPortionOfTriangles, this, num_of_threads, i)
             );
         }
 
-        for (auto& t: threads)
+        // while the checks are running, resize out_count array
+        out_count.resize(triangles_count);
+
+        for (auto& t : threads)
         {
             t.join();
+        }
+
+        for (int i = 0; i < triangles_count; ++i)
+        {
+            out_count[i] = out_count_atomic[i];
         }
     }
 };

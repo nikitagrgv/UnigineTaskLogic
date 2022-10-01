@@ -1,6 +1,8 @@
 #include "task.h"
 
-#include<x86intrin.h>
+#include <x86intrin.h>
+#include <mutex>
+#include <thread>
 
 struct Vector2D
 {
@@ -131,23 +133,82 @@ bool isIntersect(const Triangle& tri1, const Triangle& tri2)
 }
 
 
-void Task::checkIntersections(const std::vector<Triangle>& in_triangles, std::vector<int>& out_count)
+class IntersectionsChecker
 {
-    const auto triangles_count = in_triangles.size();
+private:
+    const std::vector<Triangle>& in_triangles;
+    std::vector<int>& out_count;
+    std::mutex out_count_mutex;
+    const size_t triangles_count;
 
-    out_count.resize(triangles_count, 0);
-
-    for (int i = 0; i < triangles_count - 1; ++i)
+    void markIntersected(int i, int j)
     {
-        for (int j = i + 1; j < triangles_count; ++j)
+        std::lock_guard<std::mutex> guard(out_count_mutex);
+
+        out_count[i] += 1;
+        out_count[j] += 1;
+    }
+
+    void checkOddTriangles()
+    {
+        for (int i = 0; i < triangles_count - 1; i += 2)
         {
-            const auto& tri1 = in_triangles[i];
-            const auto& tri2 = in_triangles[j];
+            for (int j = i + 1; j < triangles_count; ++j)
+            {
+                const auto& tri1 = in_triangles[i];
+                const auto& tri2 = in_triangles[j];
 
-            bool is_intersect = isIntersect(tri1, tri2);
-
-            out_count[i] += is_intersect;
-            out_count[j] += is_intersect;
+                if (isIntersect(tri1, tri2))
+                {
+                    markIntersected(i, j);
+                }
+            }
         }
     }
+
+    void checkEvenTriangles()
+    {
+        for (int i = 1; i < triangles_count - 1; i += 2)
+        {
+            for (int j = i + 1; j < triangles_count; ++j)
+            {
+                const auto& tri1 = in_triangles[i];
+                const auto& tri2 = in_triangles[j];
+
+                if (isIntersect(tri1, tri2))
+                {
+                    markIntersected(i, j);
+                }
+            }
+        }
+    }
+
+public:
+    IntersectionsChecker(const std::vector<Triangle>& in_triangles, std::vector<int>& out_count) :
+            in_triangles(in_triangles),
+            out_count(out_count),
+            triangles_count(in_triangles.size())
+    {
+        out_count.resize(triangles_count);
+    }
+
+    void fillIntersectionsVector()
+    {
+        std::thread even_thread([this]()
+                                {
+                                    checkEvenTriangles();
+                                });
+
+        checkOddTriangles();
+
+        even_thread.join();
+    }
+};
+
+
+void Task::checkIntersections(const std::vector<Triangle>& in_triangles, std::vector<int>& out_count)
+{
+    IntersectionsChecker checker(in_triangles, out_count);
+    checker.fillIntersectionsVector();
+
 }

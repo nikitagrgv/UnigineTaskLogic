@@ -1,5 +1,7 @@
 #include "task.h"
 
+#include<x86intrin.h>
+
 struct Vector2D
 {
     float x;
@@ -8,7 +10,7 @@ struct Vector2D
     Vector2D(float x, float y) : x(x), y(y)
     {}
 
-    Vector2D(const Point& a, const Point& b) : x(a.x - b.x), y(a.y - b.y)
+    Vector2D(const Point& a, const Point& b) : x(b.x - a.x), y(b.y - a.y)
     {}
 
     Vector2D getNormal() const

@@ -49,14 +49,14 @@ struct Shadow
         };
     }
 
-    static bool isIntersect(const Shadow& shadow1, const Shadow& shadow2)
+    static bool areIntersect(const Shadow& shadow1, const Shadow& shadow2)
     {
         return (shadow1.begin <= shadow2.end) && (shadow1.end >= shadow2.begin);
     }
 };
 
 
-bool isIntersectRelativelyToFirstTriangle(const Triangle& tri1, const Triangle& tri2)
+bool areIntersectRelativelyToFirstTriangle(const Triangle& tri1, const Triangle& tri2)
 {
 
     {
@@ -131,7 +131,7 @@ bool isIntersectRelativelyToFirstTriangle(const Triangle& tri1, const Triangle& 
 }
 
 
-bool isIntersect(const Triangle& tri1, const Triangle& tri2)
+bool areIntersect(const Triangle& tri1, const Triangle& tri2)
 {
     if (!isTrianglesIntersectsRelativelyToFirstTriangle(tri1, tri2))
     {

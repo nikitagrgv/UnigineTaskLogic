@@ -37,6 +37,7 @@ int main1()
         }
         out.close();
     }
+    return 0;
 }
 
 
@@ -53,7 +54,7 @@ int main()
 	if (in.is_open())
 	{
 		in >> count;
-		Triangle t;
+		Triangle t{};
 		for (int i = 0; i < count; i++)
 		{
 			in >> t.a.x >> t.a.y;

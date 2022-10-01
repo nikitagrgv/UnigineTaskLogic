@@ -64,7 +64,7 @@ public:
         };
     }
 
-    static bool isIntersect(const Shadow& shadow1, const Shadow& shadow2)
+    static bool areIntersected(const Shadow& shadow1, const Shadow& shadow2)
     {
         return (shadow1._begin <= shadow2._end) && (shadow1._end >= shadow2._begin);
     }
@@ -72,7 +72,7 @@ public:
 
 // find shadows of tri1 and tri2, projected on the vector in tri1, and check if they intersect
 // shadows are calculated relatively to the point side_begin
-bool isIntersectRelativelyToSide(const Point& side_begin, const Point& side_end,
+bool areIntersectedRelativelyToSide(const Point& side_begin, const Point& side_end,
     const Point& last_point_of_triangle, const Triangle& tri2)
 {
     Vector2D vector(side_begin, side_end);
@@ -88,28 +88,30 @@ bool isIntersectRelativelyToSide(const Point& side_begin, const Point& side_end,
     auto projection_tri2_b = normal.getPseudoProjection({ side_begin, tri2.b });
     auto projection_tri2_c = normal.getPseudoProjection({ side_begin, tri2.c });
 
-    auto shadow_tri2 = Shadow::fromProjectedPoints(projection_tri2_a,
+    // bottleneck here?
+    auto shadow_tri2 = Shadow::fromProjectedPoints(
+        projection_tri2_a,
         projection_tri2_b,
         projection_tri2_c);
 
-    return Shadow::isIntersect(shadow_tri1, shadow_tri2);
+    return Shadow::areIntersected(shadow_tri1, shadow_tri2);
 }
 
 
-// check if shadows of the triangles intersects when projected on normals of all sides of tri1
-bool isIntersectRelativelyToFirstTriangle(const Triangle& tri1, const Triangle& tri2)
+// check if shadows of the triangles intersect when projected on normals of all sides of tri1
+bool areIntersectedRelativelyToFirstTriangle(const Triangle& tri1, const Triangle& tri2)
 {
-    if (!isIntersectRelativelyToSide(tri1.a, tri1.b, tri1.c, tri2))
+    if (!areIntersectedRelativelyToSide(tri1.a, tri1.b, tri1.c, tri2))
     {
         return false;
     }
 
-    if (!isIntersectRelativelyToSide(tri1.b, tri1.c, tri1.a, tri2))
+    if (!areIntersectedRelativelyToSide(tri1.b, tri1.c, tri1.a, tri2))
     {
         return false;
     }
 
-    if (!isIntersectRelativelyToSide(tri1.c, tri1.a, tri1.b, tri2))
+    if (!areIntersectedRelativelyToSide(tri1.c, tri1.a, tri1.b, tri2))
     {
         return false;
     }
@@ -118,14 +120,14 @@ bool isIntersectRelativelyToFirstTriangle(const Triangle& tri1, const Triangle& 
 }
 
 
-bool isIntersect(const Triangle& tri1, const Triangle& tri2)
+bool areIntersected(const Triangle& tri1, const Triangle& tri2)
 {
-    if (!isIntersectRelativelyToFirstTriangle(tri1, tri2))
+    if (!areIntersectedRelativelyToFirstTriangle(tri1, tri2))
     {
         return false;
     }
 
-    if (!isIntersectRelativelyToFirstTriangle(tri2, tri1))
+    if (!areIntersectedRelativelyToFirstTriangle(tri2, tri1))
     {
         return false;
     }
@@ -157,14 +159,14 @@ private:
             triangles_count - 1 :
             portion_size * (current_portion + 1);
 
-        for (int i = portion_begin; i < portion_end; ++i)
+        for (size_t i = portion_begin; i < portion_end; ++i)
         {
-            for (int j = i + 1; j < triangles_count; ++j)
+            for (size_t j = i + 1; j < triangles_count; ++j)
             {
                 const auto& tri1 = in_triangles[i];
                 const auto& tri2 = in_triangles[j];
 
-                if (isIntersect(tri1, tri2))
+                if (areIntersected(tri1, tri2))
                 {
                     markIntersected(i, j);
                 }
@@ -186,11 +188,10 @@ public:
         auto num_of_threads = std::thread::hardware_concurrency();
         std::vector<std::thread> threads;
 
-        for (int i = 0; i < num_of_threads; ++i)
+        threads.reserve(num_of_threads);
+        for (size_t i = 0; i < num_of_threads; ++i)
         {
-            threads.push_back(
-                std::thread(&IntersectionsChecker::checkPortionOfTriangles, this, num_of_threads, i)
-            );
+            threads.emplace_back(&IntersectionsChecker::checkPortionOfTriangles, this, num_of_threads, i);
         }
 
         // while the checks are running, resize out_count array

@@ -149,26 +149,15 @@ private:
         out_count[j] += 1;
     }
 
-    void checkOddTriangles()
+    void checkPortionOfTriangles(int num_of_portions, int current_portion)
     {
-        for (int i = 0; i < triangles_count - 1; i += 2)
-        {
-            for (int j = i + 1; j < triangles_count; ++j)
-            {
-                const auto& tri1 = in_triangles[i];
-                const auto& tri2 = in_triangles[j];
+        auto portion_size = triangles_count / num_of_portions;
+        auto portion_begin = portion_size * current_portion;
+        auto portion_end = num_of_portions == current_portion + 1 ?
+                           triangles_count - 1 :
+                           portion_size * (current_portion + 1);
 
-                if (isIntersect(tri1, tri2))
-                {
-                    markIntersected(i, j);
-                }
-            }
-        }
-    }
-
-    void checkEvenTriangles()
-    {
-        for (int i = 1; i < triangles_count - 1; i += 2)
+        for (int i = portion_begin; i < portion_end; ++i)
         {
             for (int j = i + 1; j < triangles_count; ++j)
             {
@@ -194,14 +183,20 @@ public:
 
     void fillIntersectionsVector()
     {
-        std::thread even_thread([this]()
-                                {
-                                    checkEvenTriangles();
-                                });
+        auto num_of_threads = std::thread::hardware_concurrency();
+        std::vector<std::thread> threads;
 
-        checkOddTriangles();
+        for (int i = 0; i < num_of_threads; ++i)
+        {
+            threads.push_back(
+                    std::thread(&IntersectionsChecker::checkPortionOfTriangles, this, num_of_threads, i)
+            );
+        }
 
-        even_thread.join();
+        for (auto& t: threads)
+        {
+            t.join();
+        }
     }
 };
 
